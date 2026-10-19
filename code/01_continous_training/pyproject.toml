@@ -1,0 +1,37 @@
+[project]
+name = "uni-mol2-toxicity-prediction"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "numpy",
+    "rdkit",
+    "pandas",
+    "lmdb",
+    "tqdm",
+    "omegaconf",
+    "unicore",
+    "numba>=0.65.1",
+    "scikit-learn>=1.7.2",
+    "pyarrow>=24.0.0",
+    "addict>=2.4.0",
+    "matplotlib>=3.10.9",
+    "lightgbm>=4.6.0",
+]
+
+# 1. 定义 PyTorch 官方的 CUDA 12.4 镜像源
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+unicore = { path = "4_scripts/Uni-Mol/Uni-Core", editable = true }
+# 2. 锁定 torch 从上面的 CUDA 12.4 源下载
+torch = { index = "pytorch-cu124" }
+
+# 3. 核心：告诉 uv，在编译 unicore 之前，必须先在隔离环境里把 torch 塞进去
+[tool.uv.extra-build-dependencies]
+unicore = ["torch"]

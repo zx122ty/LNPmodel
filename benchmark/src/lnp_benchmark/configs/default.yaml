@@ -1,0 +1,95 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# LNP Benchmark — Master Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+data:
+  # Input datasets (multi-sheet Excel with metadata + data sheets)
+  input_path: "/home/data/zhengxiao/disk1/my_project/lnpModel/benchmark/input_data/dataset.xlsx"
+  # Or for individual CSV:
+  # input_path: "/home/data/zhengxiao/disk1/my_project/lnpModel/other_model/LUMI-lab/data/LUMI-lab/4CR-1920.csv"
+
+  # Column mapping for CSV input (ignored for Excel multi-sheet)
+  smiles_col: "mol"
+  target_col: "RLU (log2)"
+
+  # Standardisation
+  deduplicate_strategy: "first"   # first | mean | max
+  ph_protonation: false           # true: generate pH 7.4 + pH 5.5 states
+
+splits:
+  methods: ["random", "scaffold", "cluster"]   # which splitters to run
+  seeds: [42, 123, 456, 789, 2026]             # 5 fixed seeds for reproducibility
+  val_ratio: 0.1
+  test_ratio: 0.1
+  cluster_cutoff: 0.7
+
+features:
+  # Tier 1: classical fingerprints / descriptors
+  morgan:
+    n_bits: 2048
+    radius: 2
+  rdkit_descriptors: true
+
+  # Tier 2: pretrained representations
+  unimol:
+    enabled: true
+    model_name: "unimolv1"       # unimolv1 or unimolv2
+    batch_size: 32
+    max_atoms: 256
+    # UniMol v2 paths (uncomment if using v2)
+    # pretrained_model_path: "/home/data/zhengxiao/disk1/my_project/lnpModel/code/01_continous_training/2_models/pretrained/checkpoint_84M.pt"
+    # pretrained_dict_path: "/home/data/zhengxiao/disk1/my_project/lnpModel/code/01_continous_training/2_models/pretrained/dict.txt"
+
+models:
+  # Tier 1: classical ML (use features from the 'features' section)
+  tier1:
+    enabled: true
+    models: ["XGBoost", "LightGBM", "RandomForest", "MLP", "Ridge", "SVR"]
+    optuna: false                  # run hyperparameter search?
+    optuna_n_trials: 50
+
+  # Tier 2: pretrained models (fine-tuned directly, not feature-based)
+  tier2:
+    enabled: false
+    models: ["ChemBERTa", "UniMol"]
+
+  # Tier 3: domain-specific SOTA
+  tier3:
+    enabled: false
+    models: ["LUMI-lab", "LION"]
+
+eval:
+  metrics: ["MSE", "RMSE", "MAE", "R2", "Spearman", "Pearson"]
+  data_efficiency:
+    enabled: false
+    fractions: [0.1, 0.2, 0.5]
+  significance:
+    alpha: 0.05
+  error_analysis:
+    top_k: 50
+  interpretability:
+    enabled: false
+  visualize:
+    enabled: true                           # auto-generate plots after pipeline
+    standalone: false                       # can be run separately via CLI
+    charts:
+      bar_error: true                       # grouped bar + error bar
+      heatmap: true                         # R²/Spearman/Pearson heatmap
+      radar: true                           # normalised radar chart
+      scatter: true                         # predicted vs true scatter
+
+output:
+  base_dir: "/home/data/zhengxiao/disk1/my_project/lnpModel/benchmark/results"
+  save_predictions: true
+  save_models: false
+
+# Environment
+env:
+  hf_endpoint: "https://hf-mirror.com"   # HuggingFace mirror for weight download
+  seed: 42
+  device: "cuda"                          # cuda | cpu
+
+# Execution
+execution:
+  n_jobs: -1                              # parallel workers (-1 = all CPUs)
+  batch_size: 1                           # task batching for joblib

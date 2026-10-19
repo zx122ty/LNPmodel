@@ -1,0 +1,13 @@
+# Runtime deps actually used by the benchmark, with versions from the working
+# env (conda env "lnp", Python 3.12). Install with:
+#   pip install -r requirements.txt
+rdkit==2026.3.1
+scikit-learn==1.8.0
+numpy==2.4.4
+pandas==3.0.2
+scipy==1.17.1
+matplotlib==3.10.9
+joblib>=1.3
+xgboost==3.2.0
+lightgbm==4.6.0
+openpyxl==3.1.5

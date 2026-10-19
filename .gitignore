@@ -1,0 +1,152 @@
+# ---------------------------------------------------------------------------
+# Operating system / editor files
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.vscode-server/
+.claude/
+.codex/
+
+MTR_dataset/
+benchmark/report/
+benchmark/input_data/
+benchmark/results/
+
+code/document/
+# ---------------------------------------------------------------------------
+# Secrets and machine-local configuration
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+
+# ---------------------------------------------------------------------------
+# Python / build caches
+# ---------------------------------------------------------------------------
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.dll
+*.a
+*.o
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# Local notes, experiments, backups, and scratch workspaces
+# ---------------------------------------------------------------------------
+.migration_backup_20260918/
+denovo_pre_train/
+error/
+logs/
+other_model/
+prompt/
+writing/
+unimol_tool_document/
+wheelhouse/
+pka_prediction/
+design/
+Work/
+data/
+*cache*/
+failed/
+
+# ---------------------------------------------------------------------------
+# Data and generated artifacts (published separately on Hugging Face)
+# ---------------------------------------------------------------------------
+# Source datasets used by the benchmark and the staged pipeline
+benchmark/input_data/
+MTR_dataset/
+pka_dataset/
+code/00_prepare_ILs_vitual_library/raw_data/
+code/00_prepare_ILs_vitual_library/output/
+code/00_prepare_ILs_vitual_library_v2/data/
+code/00_prepare_ILs_vitual_library_v2/curate_library/generated_virtual_library*.csv
+code/01_continous_training/1_data/
+code/01_continous_training/2_models/
+code/01_continous_training/5_outputs/
+code/2_models/
+code/my_code/results/
+code/my_code/results_*/
+benchmark/code/outputs/
+
+
+benchmark/code/AGENT_ONBOARDING_PROMPT.md
+code/00_prepare_ILs_vitual_library_v2/REPRODUCE.enamine.md
+code/00_prepare_ILs_vitual_library_v2/REPRODUCE.md
+
+code/01_continous_training/4_scripts/diagnostics/README.md
+code/01_continous_training/test-gpu.md
+
+ASSETS.md
+
+README_local_use.md
+# ---------------------------------------------------------------------------
+# Model weights, datasets, archives, and other large/binary artifacts
+# ---------------------------------------------------------------------------
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+*.joblib
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.db
+*.sqlite
+*.sqlite3
+*.lmdb
+*.lmdb-lock
+*.sdf
+*.mol2
+*.pdb
+*.parquet
+*.feather
+*.xlsx
+*.pdf
+*.gz
+*.zip
+*.tar
+*.tar.*
+*.tgz
+*.7z
+*.rar
+*.whl
+
+# ---------------------------------------------------------------------------
+# Logs and local run outputs
+# ---------------------------------------------------------------------------
+*.log
+*.out
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+CLAUDE.md
+pipeline.md
+pip_reqs.txt
+
+
+

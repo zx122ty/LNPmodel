@@ -1,0 +1,100 @@
+# Ionizable-lipid LNP foundation-model pipeline configuration
+# Usage: python main.py [--step prepare|pretrain] [--config 3_configs/pipeline.yaml]
+# All paths are relative to this project root (01_continous_training/).
+
+# ── Step 1: prepare_lipids_unimol_dataset.py ─────────────────────────────────
+# Generates ETKDG + MMFF94s 3D conformers for the Stage-1 lipid corpus.
+prepare:
+  input: 1_data/raw/ionizable_lipids/pretrain_corpus.parquet
+  output_dir: 1_data/processed/ionizable_lipids/unimolv2_3d
+  smiles_col: smiles_std
+  id_col: inchikey
+  source_col: source_type
+  num_workers: null             # null → cpu_count - 2
+
+  # Conformer counts are per-source. Uni-Mol2's ConformerSampleDataset draws ONE
+  # conformer per molecule per epoch, so these control 3D augmentation diversity,
+  # NOT the number of training samples. Real lipids are scarce (12k vs 100k
+  # virtual) so they get much denser coverage.
+  num_conformers_real: 24       # generated
+  keep_conformers_real: 20      # lowest-energy retained
+  # Virtual/ChEMBL budget lowered 6->4 partway through the first full run: the
+  # goal now is a fast end-to-end signal on whether domain adaptation helps at
+  # all. Virtual molecules come from the same enumerated building blocks, so
+  # extra conformers add little diversity. Raise this for the final run once
+  # the approach is validated.
+  num_conformers_virtual: 4
+  keep_conformers_virtual: 3
+
+  # MMFF94s must return status 0 or the conformer is discarded. Measured on
+  # 60-140 heavy-atom lipids: 500 iters → 0% converged, 2000 → 95.8%.
+  max_iterations: 2000
+
+  # Heavy-atom cap. Uni-Mol2's CroppingDataset randomly DROPS atoms above the
+  # training-time --max-atoms budget instead of erroring, so this must stay <=
+  # the pretrain max_atoms below. Corpus max is 208.
+  max_atoms: 256
+
+  # Plain ETKDG distance-geometry embedding fails on long flexible chains
+  # (lipids have ~39 rotatable bonds vs ~5 for drug-like). Measured on 24
+  # molecules of 60-140 heavy atoms: 8.3% reached 5 conformers without random
+  # coordinates, 100% with. Do not disable.
+  random_coords: true
+
+  seed: 20260805
+  max_molecules: null           # null → process all rows
+  sample_size: null             # null → no subsampling (set small for smoke tests)
+  sample_seed: 20260805
+  resume: true                  # true → continue an interrupted run
+
+  # ── Anti-forgetting ChEMBL replay ──────────────────────────────────────────
+  # Mixes generic drug-like molecules into the domain corpus so the backbone does
+  # not catastrophically forget general chemistry while adapting to lipids.
+  chembl_input: 1_data/raw/CHEMBLdb/chembl_37_chemreps.txt.gz
+  chembl_ratio: 0.20            # ChEMBL count as a fraction of the lipid corpus
+  chembl_max: null
+  chembl_seed: null             # null → seed + 1
+
+# ── Step 2: run_lipids_continue_pretrain.py ──────────────────────────────────
+# (build_lipids_pretrain_lmdb.py runs automatically when the LMDB is missing)
+pretrain:
+  train_sdf: 1_data/processed/ionizable_lipids/unimolv2_3d/lipids_unimolv2_3d.sdf
+  lmdb_dir: null                # null → <train_sdf parent>/lmdb_pretrain
+  output_dir: 2_models/continued_pretrain/unimol2_lipids_84m
+  pretrained_checkpoint: 2_models/pretrained/checkpoint_84M.pt
+  model_size: 84m               # 84m | 164m | 310m | 570m | 1.1b
+
+  # LMDB build settings
+  valid_ratio: 0.01
+  max_epoch: 10
+  prepare_valid_split: false    # true → (re)build LMDB from train_sdf
+
+  # Optimisation schedule.
+  # Single RTX 4090 (48 GB). batch_size × update_freq = effective batch.
+  batch_size: 8
+  update_freq: 4
+  learning_rate: 5.0e-5         # half the source project's 1e-4: corpus is ~10x
+                                # smaller, so a gentler rate limits forgetting
+  weight_decay: 1.0e-4
+  warmup_steps: 1000
+  total_steps: 30000            # ~2 epochs over 135k molecules at eff. batch 32
+  save_every_n_steps: 1000
+  validate_every_n_steps: 2000
+  log_every_n_steps: 20
+  keep_interval_updates: 5
+  num_workers: 8
+
+  # UniMol2 denoising objective (weights 1/1/1 = full pretraining signal)
+  masked_token_loss: 1.0
+  masked_coord_loss: 1.0
+  masked_dist_loss: 1.0
+  mask_token_prob: 0.15
+  mask_prob: 0.15
+  drop_feat_prob: 0.5
+  noise: 1.0
+  noise_type: uniform           # trunc_normal | uniform | normal | none
+  max_atoms: 256                # must be >= prepare.max_atoms (see note above)
+
+  seed: 20260805
+  fp16: true
+  dry_run: false                # true → print command and exit without training

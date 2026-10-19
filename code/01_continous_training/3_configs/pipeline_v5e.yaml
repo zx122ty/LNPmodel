@@ -1,0 +1,69 @@
+# Ionizable-lipid LNP foundation-model pipeline configuration (v5 tune)
+# Usage: python main.py [--step prepare|pretrain] [--config 3_configs/pipeline_v5.yaml]
+
+prepare:
+  input: 1_data/raw/ionizable_lipids/pretrain_corpus.parquet
+  output_dir: 1_data/processed/ionizable_lipids/unimolv2_3d_v5
+  smiles_col: smiles_std
+  id_col: inchikey
+  source_col: source_type
+  num_workers: null
+  num_conformers_real: 24
+  keep_conformers_real: 20
+  num_conformers_virtual: 4
+  keep_conformers_virtual: 3
+  max_iterations: 2000
+  max_atoms: 256
+  random_coords: true
+  seed: 20260805
+  max_molecules: null
+  sample_size: null
+  sample_seed: 20260805
+  resume: true
+  chembl_input: null
+  chembl_ratio: 0.0
+  chembl_max: null
+  chembl_seed: null
+
+# ── v5: run the v5 (MTR) training script ─────────────────────────────────────
+pretrain:
+  runner: v5                      # v5 -> run_v5_continue_pretrain.py (unimol2_mtr)
+  train_sdf: 1_data/processed/ionizable_lipids/unimolv2_3d_v5e/lipids_unimolv2_3d.sdf
+  lmdb_dir: null                  # null -> <train_sdf parent>/lmdb_pretrain
+  output_dir: 2_models/continued_pretrain/unimol2_lipids_84m_v5e
+  pretrained_checkpoint: 2_models/pretrained/checkpoint_84M.pt
+  model_size: 84m
+
+  valid_ratio: 0.01
+  max_epoch: 10
+  prepare_valid_split: false
+
+  batch_size: 8
+  update_freq: 4
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-4
+  warmup_steps: 1000
+  total_steps: 30000
+  save_every_n_steps: 1000
+  validate_every_n_steps: 2000
+  log_every_n_steps: 20
+  keep_interval_updates: 5
+  num_workers: 8
+
+  masked_token_loss: 1.0
+  masked_coord_loss: 1.0
+  masked_dist_loss: 1.0
+  mask_token_prob: 0.15
+  mask_prob: 0.15
+  drop_feat_prob: 0.5
+  noise: 1.0
+  noise_type: uniform
+  max_atoms: 256
+
+  # MTR: descriptor regression on [CLS] (34 z-scored RDKit descriptors)
+  mtr_loss_weight: 1.0
+  descriptors_json: null          # null -> LMDB manifest (dataset_cards.json)
+
+  seed: 20260805
+  fp16: true
+  dry_run: false

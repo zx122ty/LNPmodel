@@ -1,0 +1,82 @@
+# Ionizable-lipid LNP foundation-model pipeline configuration (v6: paper-style MTR-only DA)
+# Usage: python main.py --step pretrain --config 3_configs/pipeline_v6.yaml
+#
+# v6 = MTR-only Domain Adaptation, following the reference paper
+# ("Transformers for Molecular Property Prediction: Domain Adaptation Efficiently
+# Improves Performance"):
+#   * corpus/conformers IDENTICAL to v5 (reuses v5 SDF; descriptors recomputed)
+#   * MTR targets: full RDKit descriptors (~200) + 3 lipid priors (v6_descriptors.py)
+#   * MTR head: 2-layer MLP + ReLU + Dropout 0.1 + mean pooling (paper style)
+#   * training: MTR-ONLY (masked token/coord/dist = 0), stock 84M start, 30k steps
+#   * batch 16 x update_freq 2 = effective 32 (same as v5; faster GPU utilisation)
+
+prepare:
+  input: 1_data/raw/ionizable_lipids/pretrain_corpus.parquet
+  output_dir: 1_data/processed/ionizable_lipids/unimolv2_3d_v6
+  smiles_col: smiles_std
+  id_col: inchikey
+  source_col: source_type
+  num_workers: null
+  num_conformers_real: 24
+  keep_conformers_real: 20
+  num_conformers_virtual: 4
+  keep_conformers_virtual: 3
+  max_iterations: 2000
+  max_atoms: 256
+  random_coords: true
+  seed: 20260805
+  max_molecules: null
+  sample_size: null
+  sample_seed: 20260805
+  resume: true
+  chembl_input: null
+  chembl_ratio: 0.0
+  chembl_max: null
+  chembl_seed: null
+
+pretrain:
+  runner: v5                      # v5 -> run_v5_continue_pretrain.py (unimol2_mtr)
+  train_sdf: 1_data/processed/ionizable_lipids/unimolv2_3d_v5/lipids_unimolv2_3d.sdf
+  lmdb_dir: 1_data/processed/ionizable_lipids/unimolv2_3d_v6/lmdb_pretrain
+  output_dir: 2_models/continued_pretrain/unimol2_lipids_84m_v6
+  pretrained_checkpoint: 2_models/pretrained/checkpoint_84M.pt
+  model_size: 84m
+
+  valid_ratio: 0.01
+  max_epoch: 10
+  prepare_valid_split: false
+
+  batch_size: 16
+  update_freq: 2
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-4
+  warmup_steps: 1000
+  total_steps: 30000
+  save_every_n_steps: 1000
+  validate_every_n_steps: 2000
+  log_every_n_steps: 20
+  keep_interval_updates: 5
+  num_workers: 8
+
+  # ── MTR-ONLY: all UniMol2 denoising objectives off ─────────────────────
+  masked_token_loss: 0.0
+  masked_coord_loss: 0.0
+  masked_dist_loss: 0.0
+  mask_token_prob: 0.15
+  mask_prob: 0.15
+  drop_feat_prob: 0.5
+  noise: 1.0
+  noise_type: uniform
+  max_atoms: 256
+
+  # ── MTR (paper-style head) ─────────────────────────────────────────────
+  mtr_loss_weight: 1.0
+  descriptors_json: null          # null -> LMDB manifest (v6 lmdb_manifest.json)
+  mtr_pooling: mean               # paper: mean pooling over tokens
+  mtr_hidden_dim: 512             # paper: 2-layer MLP
+  mtr_activation_fn: relu         # paper: ReLU
+  mtr_dropout: 0.1                # paper: Dropout 0.1
+
+  seed: 20260805
+  fp16: true
+  dry_run: false
